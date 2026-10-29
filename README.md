@@ -40,18 +40,17 @@ erDiagram
 
 ## Instalação local
 
-1. Copie `.env.example` para `.env` e defina `SESSION_SECRET` com no mínimo 32 caracteres aleatórios. O valor de exemplo é somente um marcador.
-2. Instale dependências: `npm install`.
-3. Inicie o banco MySQL (por exemplo, `docker compose up db -d`) e aplique a migration: `npm run db:migrate -w server`.
-4. Carregue dados fictícios: `npm run db:seed`.
-5. Inicie frontend e API: `npm run dev`.
-6. Abra `http://localhost:5173`. O Vite encaminha `/api` para a porta indicada por `PORT` no `.env` (3001 por padrão).
+
+1. Instale dependências: `npm install`.
+2. Inicie o banco MySQL (por exemplo, `docker compose up db -d`) e aplique a migration: `npm run db:migrate -w server`.
+3. Carregue dados fictícios: `npm run db:seed`.
+4. Inicie frontend e API: `npm run dev`.
+5. Abra `http://localhost:5173`. O Vite encaminha `/api` para a porta indicada por `PORT` no `.env` (3001 por padrão).
 
 O seed cria o usuário de demonstração `admin@erplite.local` com senha `Admin123!`, um produto fictício e cadastros auxiliares. Troque/remova a senha de demonstração antes de qualquer implantação compartilhada. Nenhum segredo real deve ser versionado.
 
 ## Docker Compose
 
-Com Docker Desktop ativo, copie `.env.example` para `.env`, substitua `SESSION_SECRET` e execute:
 
 ```bash
 docker compose up --build
