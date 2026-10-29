@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: ERP Lite API
+  version: 1.0.0
+  description: API REST de gestão comercial do ERP Lite. A autenticação usa cookie de sessão HTTP-only.
+servers:
+  - url: http://localhost:3001/api
+security: [{ cookieAuth: [] }]
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: erp.sid }
+  schemas:
+    Error: { type: object, properties: { error: { type: object, properties: { code: { type: string }, message: { type: string } } } } }
+    Product: { type: object, required: [sku, name, price, cost], properties: { id: { type: string }, sku: { type: string }, name: { type: string }, price: { type: number, minimum: 0 }, cost: { type: number, minimum: 0 }, stock: { type: integer, minimum: 0 }, minStock: { type: integer, minimum: 0 }, active: { type: boolean } } }
+    SaleItemInput: { type: object, required: [productId, quantity], properties: { productId: { type: string }, quantity: { type: integer, minimum: 1 } } }
+paths:
+  /health: { get: { security: [], summary: Health check, responses: { '200': { description: API disponível } } } }
+  /auth/login:
+    post: { security: [], summary: Iniciar sessão, requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, password], properties: { email: { type: string, format: email }, password: { type: string } } } } } }, responses: { '200': { description: Sessão iniciada }, '401': { description: Credenciais inválidas } } }
+  /auth/me: { get: { summary: Usuário atual, responses: { '200': { description: Perfil autenticado } } } }
+  /auth/logout: { post: { summary: Encerrar sessão, responses: { '204': { description: Sessão encerrada } } } }
+  /products: { get: { summary: Listar produtos, parameters: [{ in: query, name: q, schema: { type: string } }], responses: { '200': { description: Produtos } } }, post: { summary: Criar produto (admin), requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } } }, responses: { '201': { description: Produto criado } } } }
+  /products/{id}: { patch: { summary: Atualizar produto (admin), parameters: [{ in: path, name: id, required: true, schema: { type: string } }], responses: { '200': { description: Produto atualizado } } }, delete: { summary: Inativar produto (admin), parameters: [{ in: path, name: id, required: true, schema: { type: string } }], responses: { '204': { description: Produto inativado logicamente } } }
+  /users: { get: { summary: Listar usuários (admin), responses: { '200': { description: Perfis ativos e inativos sem hashes de senha } } }, post: { summary: Criar usuário (admin), requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name, email, password, role], properties: { name: { type: string }, email: { type: string, format: email }, password: { type: string, minLength: 12 }, role: { type: string, enum: [ADMIN, EMPLOYEE] } } } } } }, responses: { '201': { description: Usuário criado sem retornar hash de senha } } } }
+  /categories: { get: { summary: Listar categorias, responses: { '200': { description: Categorias } } }, post: { summary: Criar categoria (admin), responses: { '201': { description: Categoria criada } } } }
+  /suppliers: { get: { summary: Listar fornecedores ativos, responses: { '200': { description: Fornecedores } } }, post: { summary: Criar fornecedor (admin), responses: { '201': { description: Fornecedor criado } } } }
+  /stock/movements: { get: { summary: Histórico de estoque, responses: { '200': { description: Movimentações } } }, post: { summary: Registrar entrada ou saída, requestBody: { required: true, content: { application/json: { schema: { type: object, required: [productId, type, quantity, reason], properties: { productId: { type: string }, type: { type: string, enum: [IN, OUT, ADJUSTMENT] }, quantity: { type: integer, minimum: 1 }, reason: { type: string } } } } } }, responses: { '201': { description: Movimentação gravada }, '409': { description: Saldo insuficiente } } }
+  /sales: { get: { summary: Consultar vendas, responses: { '200': { description: Vendas } } }, post: { summary: Registrar venda multi-item e baixar estoque atomicamente, requestBody: { required: true, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, minItems: 1, items: { $ref: '#/components/schemas/SaleItemInput' } } } } } } }, responses: { '201': { description: Venda e movimentos registrados }, '409': { description: Estoque insuficiente } } }
+  /accounts: { get: { summary: Listar contas, responses: { '200': { description: Contas financeiras } } }, post: { summary: Criar conta (admin), responses: { '201': { description: Conta criada } } } }
+  /accounts/{id}/pay: { patch: { summary: Marcar conta como paga (admin), parameters: [{ in: path, name: id, required: true, schema: { type: string } }], responses: { '200': { description: Conta atualizada } } } }
+  /dashboard: { get: { summary: Resumo do dia, responses: { '200': { description: Métricas calculadas com dados do banco } } } }
+  /reports/sales: { get: { summary: Relatório de vendas por período, parameters: [{ in: query, name: from, schema: { type: string, format: date } }, { in: query, name: to, schema: { type: string, format: date } }], responses: { '200': { description: Faturamento e vendas no intervalo } } } }

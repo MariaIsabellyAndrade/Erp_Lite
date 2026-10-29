@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+enum MovementType {
+  IN
+  OUT
+  SALE
+  ADJUSTMENT
+}
+enum AccountType {
+  PAYABLE
+  RECEIVABLE
+}
+enum AccountStatus {
+  OPEN
+  PAID
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(EMPLOYEE)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  sales        Sale[]
+  movements    StockMovement[]
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Supplier {
+  id        String    @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  active    Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id           String          @id @default(cuid())
+  sku          String          @unique
+  name         String
+  description  String?
+  price        Decimal         @db.Decimal(12, 2)
+  cost         Decimal         @db.Decimal(12, 2)
+  stock        Int             @default(0)
+  minStock     Int             @default(0)
+  active       Boolean         @default(true)
+  categoryId   String?
+  supplierId   String?
+  category     Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  supplier     Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  saleItems    SaleItem[]
+  movements    StockMovement[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  @@index([name])
+  @@index([active, stock])
+}
+
+model Sale {
+  id          String     @id @default(cuid())
+  number      Int        @unique @default(autoincrement())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  total       Decimal    @db.Decimal(12, 2)
+  createdAt   DateTime   @default(now())
+  items       SaleItem[]
+  account     Account?
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  saleId      String
+  productId   String
+  productName String
+  sku         String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  subtotal    Decimal  @db.Decimal(12, 2)
+  sale        Sale     @relation(fields: [saleId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+  @@index([saleId])
+}
+
+model StockMovement {
+  id          String       @id @default(cuid())
+  productId   String
+  userId      String
+  type        MovementType
+  quantity    Int
+  reason      String
+  referenceId String?
+  createdAt   DateTime     @default(now())
+  product     Product      @relation(fields: [productId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
+  @@index([productId, createdAt])
+}
+
+model Account {
+  id          String        @id @default(cuid())
+  type        AccountType
+  description String
+  amount      Decimal       @db.Decimal(12, 2)
+  dueDate     DateTime
+  status      AccountStatus @default(OPEN)
+  saleId      String?       @unique
+  sale        Sale?         @relation(fields: [saleId], references: [id])
+  createdAt   DateTime      @default(now())
+  @@index([type, status, dueDate])
+}
